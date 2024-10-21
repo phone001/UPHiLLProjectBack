@@ -4,11 +4,12 @@ import { InjectModel } from '@nestjs/sequelize';
 import { signupSchema, signinSchema, findidSchema, duplication, findpwSchema, updatePwSchema, kakaoIdSchema, updateNkSchema, pointStackSchema } from 'src/dto/user.dto';
 import { User } from 'src/model/User.Model';
 import { z } from 'zod';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import sequelize from 'sequelize';
 import { Avatar } from 'src/model/Avatar.Model';
 import { Product } from 'src/model/Product.Model';
 import { AuthCode } from 'src/model/AuthCode.Model';
+import { Order } from 'src/model/Order.model';
 
 type signupDTO = z.infer<typeof signupSchema>;
 type signinDTO = z.infer<typeof signinSchema>;
@@ -25,6 +26,7 @@ export class UserService {
     constructor(
         @InjectModel(User) private readonly userModel: typeof User,
         @InjectModel(Avatar) private readonly avatar: typeof Avatar,
+        @InjectModel(Order) private readonly order: typeof Order,
         private readonly jwt: JwtService) { }
 
     // 유저 회원가입
@@ -156,8 +158,8 @@ export class UserService {
 
     // 닉네임 변경
     async updateNk(user: updaNkDTO, token: string) {
-        const { nickName } = user
-        const { email } = this.jwt.verify(token)
+        const { email } = this.jwt.verify(token, { secret: process.env.JWT_KEY })
+        const { nickName } = user;
         const data = await this.userModel.update({ nickName }, { where: { email } })
         console.log(data);
 
@@ -226,13 +228,78 @@ export class UserService {
     }
 
     // 유저 토큰
-    userToken(token: any) {
+    userToken(token: object) {
         // 토큰 생성
-        return this.jwt.sign(token, { expiresIn: 60 * 30 * 1000 });
+        return this.jwt.sign(token, { expiresIn: 60 * 30 * 1000, secret: process.env.JWT_KEY });
     }
 
     // 토큰 복호화
     verifyToken(jwt: string) {
         return this.jwt.verify(jwt);
+    }
+
+    // 토큰이 있는지 체크
+    isToken(token: string) {
+        if (!token) {
+            return '토큰이 없어용'
+        }
+        return token;
+    }
+
+    async getUserInfo(token: string) {
+        try {
+            const { email } = this.jwt.verify(token, { secret: process.env.JWT_KEY });
+            const data = await this.userModel.findOne({
+                attributes: ["email", "nickName", "point"],
+                where: { email },
+                include: [{
+                    model: AuthCode,
+                    attributes: ["auth"],
+                    as: "authcode"
+                }, {
+                    model: Avatar,
+                    include: [{
+                        model: Product,
+                        attributes: ["image"]
+                    }]
+                }
+                ],
+            });
+            const obj = {
+                email: data.email,
+                nickName: data.nickName,
+                point: data.point,
+                auth: data.authcode.auth,
+                image: data.avatar.product.image
+            };
+            // console.log(obj)
+            return obj;
+        } catch (error) {
+            console.error(error);
+        }
+    }
+    /**
+     * 유저의 구매항목을 조회
+     * @param token 
+     */
+    async getMyOrder(page: number, token: string) {
+        try {
+            const itemCount = 12;
+            const { email } = this.jwt.verify(token, { secret: process.env.JWT_KEY })
+            const data = await this.order.findAll({
+                where: { email },
+                order: [["createdAt", "desc"]],
+                offset: Number((page - 1) * itemCount),
+                limit: itemCount,
+                include: [{
+                    model: Product,
+                }]
+            })
+            console.log(data);
+            return data;
+        } catch (error) {
+            console.error(error);
+            return error;
+        }
     }
 }

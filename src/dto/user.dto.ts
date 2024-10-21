@@ -41,7 +41,6 @@ export const updatePwSchema = z.object({
 })
 
 export const updateNkSchema = z.object({
-    email: z.string().regex(emailRegex),
     nickName: z.string().regex(nickNameRegex)
 })
 

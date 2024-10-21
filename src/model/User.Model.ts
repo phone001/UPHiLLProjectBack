@@ -1,5 +1,5 @@
 import { Table, Model, Column, DataType, Default, ForeignKey, BelongsTo, HasMany, Unique, HasOne } from 'sequelize-typescript';
-import { AuthCode } from './Authcode.Model';
+import { AuthCode } from './AuthCode.Model';
 import { Avatar } from './Avatar.Model';
 import { Order } from './Order.model';
 

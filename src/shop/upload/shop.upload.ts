@@ -7,7 +7,7 @@ import { MulterOptionsFactory } from '@nestjs/platform-express';
 export class UploadService implements MulterOptionsFactory {
     dirPath: string;
     constructor() {
-        this.dirPath = path.join(__dirname, "..", "..", "static", "imgs");
+        this.dirPath = path.join(__dirname, "..", "..", "static", "img");
         this.mkdir();
     }
 

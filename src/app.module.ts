@@ -18,11 +18,12 @@ import { Avatar } from './model/Avatar.Model';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true
+      isGlobal: true,
+      envFilePath: `.env.${process.env.NODE_ENV}`
     }),
     SequelizeModule.forRoot({
       dialect: process.env.DATABASE_TYPE as Dialect,
-      host: process.env.DATABASE_HOST,
+      host: process.env.DOCKER_HOST,
       port: parseInt(process.env.DATABASE_PORT),
       database: process.env.DATABASE_NAME,
       username: process.env.DATABASE_USER,

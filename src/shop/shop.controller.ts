@@ -2,7 +2,6 @@ import { BadRequestException, Body, Controller, Delete, Get, Param, ParseBoolPip
 import { ShopService } from './shop.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
-import { AdminGuard } from 'src/shop/guard/admin.guard';
 import { ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ProductInfoPipe } from 'src/shop/pipe/product.pipe';
 import { productInfoSchema } from 'src/shop/schema/product.schema';
@@ -35,8 +34,8 @@ export class ShopController {
   async productListAll(@Param("product") type: string, @Query('page', ParseIntPipe) page: number, @Req() req: Request) {
     console.log("product List");
     try {
-      //const { cookies: { token } } = req;
-      const data = await this.shopService.findAll(type, page);
+      const { cookies: { token } } = req;
+      const data = await this.shopService.findAll(type, page, token);
       return data
 
     } catch (error) {
@@ -51,9 +50,9 @@ export class ShopController {
   @ApiResponse({ status: 403, description: 'not find Resource' })
   @ApiParam({ name: 'product', type: 'string', description: 'product type' })
   @Get("mybox/:product")
-  async getMybox(@Param("product") type: string, @Query("page", ParseIntPipe) page: number, @Query('use', ParseBoolPipe) usage: boolean) {
-    console.log("test")
-    const data = await this.shopService.myStorage(type, page, usage);
+  async getMybox(@Req() req: Request, @Param("product") type: string, @Query("page", ParseIntPipe) page: number, @Query('use', ParseBoolPipe) usage: boolean) {
+    const { cookies: { token } } = req;
+    const data = await this.shopService.myStorage(type, page, usage, token);
     return data;
   }
 
@@ -91,8 +90,7 @@ export class ShopController {
       if (Object.keys(body).length === 0 || file === null) {
         throw new BadRequestException("No required data");
       }
-      //const { cookies: { token } } = req;
-      const token = null;
+      const { cookies: { token } } = req;
       await this.shopService.createProduct(token, body, file);
       return true;
     } catch (error) {
@@ -100,7 +98,6 @@ export class ShopController {
       return false;
     }
   }
-
 
   @Put(":product")
   @ApiOperation({ summary: 'product info update' })
@@ -117,15 +114,15 @@ export class ShopController {
       }
     }
   })
-  @UseGuards(AdminGuard)
   @UseInterceptors(FileInterceptor('image'))
   async updateProduct(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
     try {
-      const { body } = req;
+      const { body, cookies: { token } } = req;
       if (Object.keys(body).length === 0) {
         throw new BadRequestException("No required data");
       }
-      await this.shopService.updateProduct(body, file);
+
+      await this.shopService.updateProduct(body, token, file);
       return true;
     } catch (error) {
       console.log(error);
@@ -134,10 +131,10 @@ export class ShopController {
   }
 
   @Delete(":productId")
-  @UseGuards(AdminGuard)
-  async deleteProduct(@Param("productId", ParseIntPipe) id: number) {
+  async deleteProduct(@Param("productId", ParseIntPipe) id: number, @Req() req: Request) {
     try {
-      return await this.shopService.deleteProduct(id);
+      const { cookies: { token } } = req;
+      return await this.shopService.deleteProduct(id, token);
     } catch (error) {
       console.log(error);
     }
@@ -154,8 +151,8 @@ export class ShopController {
   @Put("product/buy")
   async buy(@Req() req: Request, @Body("productId", ParseIntPipe) productId: number) {
     try {
-      // const { cookies: { token } } = req;
-      const token = null;
+      const { cookies: { token } } = req;
+      //const token = null;
       return await this.shopService.buy(token, productId);
     } catch (error) {
       console.log(error);
@@ -169,4 +166,16 @@ export class ShopController {
     return this.shopService.setUsage(orderId)
   }
 
+  @Put("avatar/update")
+  async setAvatar(@Body("productId", ParseIntPipe) productid: number, @Req() req) {
+    try {
+
+      const { cookies: { token } } = req;
+      await this.shopService.setAvatar(token, productid);
+      return true;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
 }

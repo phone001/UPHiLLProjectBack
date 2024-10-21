@@ -5,7 +5,7 @@ import { AuthCode } from './model/AuthCode.Model';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import { ConfigService } from '@nestjs/config';
-import { hash } from 'bcrypt';
+import { hash } from 'bcryptjs';
 import { User } from './model/User.Model';
 import { Product } from './model/Product.Model';
 import { Avatar } from './model/Avatar.Model';
